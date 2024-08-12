@@ -16,9 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Move to correct folder
-      run: cd cli
     - name: Build
+      working-directory: ./cli
       run: cargo build --verbose
     - name: Run tests
+      working-directory: ./cli
       run: cargo test --verbose
