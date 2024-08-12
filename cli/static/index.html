@@ -1,0 +1,29 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Example</h1>
+    <script>
+        const socket = new WebSocket('ws://localhost:8000/ws/echo?stream');
+        socket.onopen = function(event) {
+            console.log("Connected to Websocket")
+        }
+
+        socket.onmessage = function(event) {
+            console.log("Message from server: ", event.data);
+        };
+
+        socket.onclose = function(event) {
+            console.log("Disconnected from WebSocket");
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket error: ", error);
+        };
+
+        socket.send("Hello World!");
+    </script>
+</body>
+</html>

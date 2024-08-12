@@ -1,0 +1,22 @@
+[package]
+name = "immerse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.13", features = ["derive"] }
+colored = "2.1.0"
+directories = "5.0.1"
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+serde = { version = "1.0", features = ["derive"] }
+ratatui = "0.27.0"
+fsrs = { git = "https://github.com/open-spaced-repetition/rs-fsrs", features = ["serde"] }
+chrono = { version = "0.4.23", features = ["serde"] }
+bson = "2.11.0"
+rocket = "0.5.1"
+tokio-tungstenite = "0.23.1"
+ws = { package = "rocket_ws", version = "0.1.0" }
+
