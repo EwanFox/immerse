@@ -36,7 +36,7 @@ pub fn read_config() -> Result<Config, CliError> {
         let config: Config = serde_json::from_str(&config_content)?;
         Ok(config)
     } else {
-        return Err(CliError::Custom("Error writing to data dir".to_string()));
+        Err(CliError::Custom("Error writing to data dir".to_string()))
     }
 }
 

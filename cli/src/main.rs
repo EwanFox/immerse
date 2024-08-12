@@ -158,10 +158,7 @@ async fn main() {
             Err(ref err) => eprintln!("{}", err),
         },
         Commands::Rocket => {
-            match rocket().launch().await {
-                Ok(_) => {},
-                Err(_) => {},
-            };
+            if let Ok(_) = rocket().launch().await {};
         }
     }
 }
@@ -294,6 +291,6 @@ fn read_db() -> Result<&'static str, CliError> {
         )?;
         Ok("Successfully located Database file!")
     } else {
-        return Err(CliError::Custom("Failed to locate db file!".to_string()));
+        Err(CliError::Custom("Failed to locate db file!".to_string()))
     }
 }

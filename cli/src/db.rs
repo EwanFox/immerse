@@ -147,6 +147,6 @@ fn connect() -> Result<Connection, CliError> {
         let connection = Connection::open(proj_dirs.data_dir().join("data.db"))?;
         Ok(connection)
     } else {
-        return Err(CliError::Custom("Failed to locate db file!".to_string()));
+        Err(CliError::Custom("Failed to locate db file!".to_string()))
     }
 }

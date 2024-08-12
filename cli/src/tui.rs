@@ -266,8 +266,8 @@ impl CanHaveKanjiList for Tui {
                 f.render_widget(block, f.size());
 
                 for i in 1..16 {
-                    let mut start = (i - 1) * 30;
-                    let mut end = (start + 30).min(content.len());
+                    let start = (i - 1) * 30;
+                    let end = (start + 30).min(content.len());
                     if content.len() < start {
                         return;
                     }
