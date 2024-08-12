@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    io::Write,
-};
+use std::{fs, io::Write};
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};

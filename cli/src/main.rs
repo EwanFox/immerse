@@ -2,10 +2,10 @@ mod ankiconnect;
 mod config;
 mod db;
 mod kanji;
-mod tui;
 mod rocket;
 #[cfg(test)]
 mod test;
+mod tui;
 /*
 Imports
 */
@@ -13,18 +13,18 @@ Imports
 use ankiconnect::get_card_content;
 use ankiconnect::get_cards;
 use ankiconnect::get_decks;
-use db::cards_with_status;
-use db::due_cards;
-use db::wipe_srs_db;
-use rocket::rocket;
 use clap::Subcommand;
 use config::add_deck;
 use config::read_config;
+use db::cards_with_status;
+use db::due_cards;
 use db::ensure_card_db;
+use db::wipe_srs_db;
 use db::KanjiSrs;
 use fsrs::Card;
 use kanji::is_kanji;
 use kanji::recommended_level;
+use rocket::rocket;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -38,8 +38,6 @@ use clap::Parser;
 use rusqlite::{Connection, Result};
 //Use Colored for prettier text
 use colored::Colorize;
-
-
 
 /*
 Custom Error Type
@@ -164,9 +162,11 @@ async fn main() {
         },
         Commands::Rocket => {
             if let Ok(_) = rocket().launch().await {};
-        },
+        }
         Commands::WipeDB => match wipe_srs_db() {
-            Ok(_) => {println!("SRS Data Wiped!")},
+            Ok(_) => {
+                println!("SRS Data Wiped!")
+            }
             Err(ref err) => eprintln!("{}", err),
         },
         Commands::ListNewCards => match cards_with_status(fsrs::State::New) {
@@ -174,7 +174,7 @@ async fn main() {
                 for card in res.iter() {
                     println!("{}", card.kanji)
                 }
-            },
+            }
             Err(ref err) => eprintln!("{}", err),
         },
     }
@@ -242,14 +242,15 @@ async fn anki_sync() -> Result<(), CliError> {
     //Make  sure the SRS table exists before we write to it
     ensure_card_db()?;
 
-
     // Add the kanji to both the srs and kanji tables
     for card in info.result {
         let word = card.fields.get(&field);
         match word {
             Some(word) => {
                 for kanji in word.value.chars() {
-                    if !is_kanji(kanji) {break;}
+                    if !is_kanji(kanji) {
+                        break;
+                    }
                     match crate::db::add_kanji(kanji, recommended_level(card.interval)) {
                         Ok(_) => {}
                         Err(ref err) => println!("{}", err),
@@ -257,7 +258,7 @@ async fn anki_sync() -> Result<(), CliError> {
                     let srscard = Card::new();
                     crate::db::card_to_db(KanjiSrs {
                         kanji,
-                        card: srscard
+                        card: srscard,
                     })?;
                 }
             }

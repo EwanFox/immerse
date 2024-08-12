@@ -71,7 +71,12 @@ pub fn card_to_db(kanji: KanjiSrs) -> Result<(), CliError> {
     ",
     )?;
     let bson_data = bson::to_vec(&kanji.card).unwrap();
-    q.execute((kanji.kanji.to_string(), bson_data, kanji.card.due.timestamp(), kanji.card.state as u8))?;
+    q.execute((
+        kanji.kanji.to_string(),
+        bson_data,
+        kanji.card.due.timestamp(),
+        kanji.card.state as u8,
+    ))?;
     Ok(())
 }
 
@@ -88,11 +93,14 @@ pub fn due_cards() -> Result<Vec<KanjiSrs>, CliError> {
     let conn = connect()?;
     let mut stmt = conn.prepare("SELECT card, kanji FROM srs WHERE due < ?1")?;
     let mut res = stmt.query(params![now])?;
-    let mut due: Vec<KanjiSrs> = vec!();
+    let mut due: Vec<KanjiSrs> = vec![];
     while let Some(row) = res.next()? {
         let str: String = row.get(1)?;
-        let kanji = str.chars().next().ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
-        let card_data: Vec<u8> = row.get(0)?; 
+        let kanji = str
+            .chars()
+            .next()
+            .ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
+        let card_data: Vec<u8> = row.get(0)?;
         due.push(KanjiSrs {
             kanji,
             card: bson::from_slice(&card_data)?,
@@ -105,11 +113,14 @@ pub fn cards_with_status(status: fsrs::State) -> Result<Vec<KanjiSrs>, CliError>
     let conn = connect()?;
     let mut stmt = conn.prepare("SELECT card, kanji FROM srs WHERE status = ?")?;
     let mut res = stmt.query(params![status as u8])?;
-    let mut due: Vec<KanjiSrs> = vec!();
+    let mut due: Vec<KanjiSrs> = vec![];
     while let Some(row) = res.next()? {
         let str: String = row.get(1)?;
-        let kanji = str.chars().next().ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
-        let card_data: Vec<u8> = row.get(0)?; 
+        let kanji = str
+            .chars()
+            .next()
+            .ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
+        let card_data: Vec<u8> = row.get(0)?;
         due.push(KanjiSrs {
             kanji,
             card: bson::from_slice(&card_data)?,
