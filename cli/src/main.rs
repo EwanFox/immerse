@@ -13,6 +13,9 @@ Imports
 use ankiconnect::get_card_content;
 use ankiconnect::get_cards;
 use ankiconnect::get_decks;
+use db::cards_with_status;
+use db::due_cards;
+use db::wipe_srs_db;
 use rocket::rocket;
 use clap::Subcommand;
 use config::add_deck;
@@ -129,6 +132,8 @@ enum Commands {
     GetDBKanji,
     KanjiCount,
     Rocket,
+    WipeDB,
+    ListNewCards,
 }
 
 /*
@@ -159,7 +164,19 @@ async fn main() {
         },
         Commands::Rocket => {
             if let Ok(_) = rocket().launch().await {};
-        }
+        },
+        Commands::WipeDB => match wipe_srs_db() {
+            Ok(_) => {println!("SRS Data Wiped!")},
+            Err(ref err) => eprintln!("{}", err),
+        },
+        Commands::ListNewCards => match cards_with_status(fsrs::State::New) {
+            Ok(res) => {
+                for card in res.iter() {
+                    println!("{}", card.kanji)
+                }
+            },
+            Err(ref err) => eprintln!("{}", err),
+        },
     }
 }
 /*
@@ -242,7 +259,6 @@ async fn anki_sync() -> Result<(), CliError> {
                         kanji,
                         card: srscard
                     })?;
-                    dbg!(crate::db::card_from_db(kanji)?);
                 }
             }
             None => {

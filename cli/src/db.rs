@@ -49,6 +49,12 @@ pub fn add_kanji(kanji: char, level: u8) -> Result<(), CliError> {
     Ok(())
 }
 
+pub fn wipe_srs_db() -> Result<(), CliError> {
+    let connection = connect()?;
+    connection.execute("DROP TABLE srs", [])?;
+    Ok(())
+}
+
 pub fn card_to_db(kanji: KanjiSrs) -> Result<(), CliError> {
     let connection = connect()?;
     if !is_kanji(kanji.kanji) {
@@ -56,15 +62,16 @@ pub fn card_to_db(kanji: KanjiSrs) -> Result<(), CliError> {
     }
     let mut q = connection.prepare(
         "
-        INSERT INTO srs (kanji, card)
-        VALUES (?, ?, ?)
+        INSERT INTO srs (kanji, card, due, status)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(kanji) DO UPDATE SET
-            card = excluded.card
-            due = excluded.due
+            card = excluded.card,
+            due = excluded.due,
+            status = excluded.status
     ",
     )?;
     let bson_data = bson::to_vec(&kanji.card).unwrap();
-    q.execute((kanji.kanji.to_string(), bson_data, kanji.card.due.timestamp()))?;
+    q.execute((kanji.kanji.to_string(), bson_data, kanji.card.due.timestamp(), kanji.card.state as u8))?;
     Ok(())
 }
 
@@ -91,7 +98,24 @@ pub fn due_cards() -> Result<Vec<KanjiSrs>, CliError> {
             card: bson::from_slice(&card_data)?,
         })
     }
-    todo!()
+    Ok(due)
+}
+
+pub fn cards_with_status(status: fsrs::State) -> Result<Vec<KanjiSrs>, CliError> {
+    let conn = connect()?;
+    let mut stmt = conn.prepare("SELECT card, kanji FROM srs WHERE status = ?")?;
+    let mut res = stmt.query(params![status as u8])?;
+    let mut due: Vec<KanjiSrs> = vec!();
+    while let Some(row) = res.next()? {
+        let str: String = row.get(1)?;
+        let kanji = str.chars().next().ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
+        let card_data: Vec<u8> = row.get(0)?; 
+        due.push(KanjiSrs {
+            kanji,
+            card: bson::from_slice(&card_data)?,
+        })
+    }
+    Ok(due)
 }
 
 pub fn ensure_card_db() -> Result<(), CliError> {
@@ -100,7 +124,8 @@ pub fn ensure_card_db() -> Result<(), CliError> {
         "CREATE TABLE IF NOT EXISTS srs (
             kanji TEXT NOT NULL PRIMARY KEY,
             card BLOB,
-            due INTEGER
+            due INTEGER,
+            status INTEGER
         )",
         [],
     )?;
