@@ -1,11 +1,17 @@
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
+
 mod ankiconnect;
 mod config;
 mod db;
 mod kanji;
-mod rocket;
 #[cfg(test)]
 mod test;
 mod tui;
+mod freya;
 /*
 Imports
 */
@@ -17,17 +23,17 @@ use clap::Subcommand;
 use config::add_deck;
 use config::read_config;
 use db::cards_with_status;
-use db::due_cards;
 use db::ensure_card_db;
 use db::wipe_srs_db;
 use db::KanjiSrs;
+use freya::start_ui;
 use fsrs::Card;
 use kanji::is_kanji;
 use kanji::recommended_level;
-use rocket::rocket;
 use std::fmt;
 use std::fs;
 use std::io;
+use std::thread;
 use tui::CanHaveKanjiList;
 use tui::CanHaveSelection;
 //Use Directories crate to get app data dir
@@ -60,7 +66,6 @@ impl fmt::Display for CliError {
             CliError::HTTP(ref err) => write!(f, "An error occurred: {}", err.to_string().red()),
             CliError::JSON(ref err) => write!(f, "An error occurred: {}", err.to_string().red()),
             CliError::BSON(ref err) => write!(f, "An error occurred: {}", err.to_string().red()),
-            CliError::Rocket(ref err) => write!(f, "An error occurred: {}", err.to_string().red()),
         }
     }
 }
@@ -73,7 +78,6 @@ pub enum CliError {
     HTTP(reqwest::Error),
     JSON(serde_json::Error),
     BSON(bson::de::Error),
-    Rocket(::rocket::Error),
 }
 
 impl From<rusqlite::Error> for CliError {
@@ -105,11 +109,6 @@ impl From<serde_json::Error> for CliError {
     }
 }
 
-impl From<::rocket::Error> for CliError {
-    fn from(err: ::rocket::Error) -> Self {
-        CliError::Rocket(err)
-    }
-}
 
 /*
 Command type defs
@@ -129,9 +128,9 @@ enum Commands {
     AnkiSync,
     GetDBKanji,
     KanjiCount,
-    Rocket,
     WipeDB,
     ListNewCards,
+    Review
 }
 
 /*
@@ -160,9 +159,6 @@ async fn main() {
             Ok(_) => {}
             Err(ref err) => eprintln!("{}", err),
         },
-        Commands::Rocket => {
-            if let Ok(_) = rocket().launch().await {};
-        }
         Commands::WipeDB => match wipe_srs_db() {
             Ok(_) => {
                 println!("SRS Data Wiped!")
@@ -177,6 +173,10 @@ async fn main() {
             }
             Err(ref err) => eprintln!("{}", err),
         },
+        Commands::Review => {
+                start_ui();
+
+        }
     }
 }
 /*

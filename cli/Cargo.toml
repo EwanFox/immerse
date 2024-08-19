@@ -16,7 +16,5 @@ ratatui = "0.27.0"
 fsrs = { git = "https://github.com/open-spaced-repetition/rs-fsrs", features = ["serde"] }
 chrono = { version = "0.4.23", features = ["serde"] }
 bson = "2.11.0"
-rocket = "0.5.1"
-tokio-tungstenite = "0.23.1"
-ws = { package = "rocket_ws", version = "0.1.0" }
-
+freya = { version = "0.2"}
+dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }

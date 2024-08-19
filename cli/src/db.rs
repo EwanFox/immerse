@@ -80,6 +80,26 @@ pub fn card_to_db(kanji: KanjiSrs) -> Result<(), CliError> {
     Ok(())
 }
 
+pub fn new_cards() -> Result<Vec<KanjiSrs>, CliError> {
+    let connection = connect()?;
+    let mut stmt = connection.prepare("SELECT card, kanji FROM srs WHERE status = ? LIMIT 20")?;
+    let mut res = stmt.query(params![fsrs::State::New as u8])?;
+    let mut new: Vec<KanjiSrs> = vec![];
+    while let Some(row) = res.next()? {
+        let str: String = row.get(1)?;
+        let kanji = str
+            .chars()
+            .next()
+            .ok_or_else(|| CliError::Custom("DB KANJI ERROR".to_string()))?;
+        let card_data: Vec<u8> = row.get(0)?;
+        new.push(KanjiSrs {
+            kanji,
+            card: bson::from_slice(&card_data)?,
+        })
+    }
+    Ok(new)
+}
+
 pub fn card_from_db(kanji: char) -> Result<KanjiSrs, CliError> {
     let connection = connect()?;
     let mut stmt = connection.prepare("SELECT card FROM srs WHERE kanji = ?")?;
