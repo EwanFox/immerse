@@ -174,7 +174,7 @@ async fn main() {
             Err(ref err) => eprintln!("{}", err),
         },
         Commands::Review => {
-                start_ui();
+            start_ui();
 
         }
     }

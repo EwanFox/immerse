@@ -2745,6 +2745,7 @@ dependencies = [
  "directories",
  "freya",
  "fsrs",
+ "rand",
  "ratatui",
  "reqwest 0.12.5",
  "rusqlite",

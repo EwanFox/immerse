@@ -18,3 +18,4 @@ chrono = { version = "0.4.23", features = ["serde"] }
 bson = "2.11.0"
 freya = { version = "0.2"}
 dioxus = { version = "0.5", features = ["macro", "hooks"], default-features = false }
+rand = "0.8.5"
