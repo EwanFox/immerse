@@ -80,7 +80,7 @@ fn app() -> Result<Element, CliError> {
     if n.is_err() {
         println!("{}", n.as_ref().unwrap_err());
     }
-    let mut  new: Signal<Vec<KanjiSrs>> = use_signal(|| n.unwrap_or_else(|_| vec![]));
+    let mut new: Signal<Vec<KanjiSrs>> = use_signal(|| n.unwrap_or_else(|_| vec![]));
 
     let conf = Arc::new(read_config()?);
 
@@ -88,8 +88,6 @@ fn app() -> Result<Element, CliError> {
         let conf_clone = Arc::clone(&conf);
         return async move {
             if let Some(k) = current.read().as_ref() {
-
-
                 let e = card_with_kanji(k.kanji, &conf_clone).await;
                 match e {
                     Ok(result) => {
@@ -105,53 +103,63 @@ fn app() -> Result<Element, CliError> {
         };
     });
 
-    use_effect(move || {current.set(new.pop());});
+    use_effect(move || {
+        current.set(new.pop());
+    });
 
-
-    Ok(rsx!(
-
-        match &*q.read() {
-            Some(Ok(res)) => {
-                rsx!{
+    Ok(rsx!(match &*q.read() {
+        Some(Ok(res)) => {
+            rsx! {
+                rect {
+                    height: "50%",
+                    width: "100%",
+                    main_align: "center",
+                    cross_align: "center",
+                    background: "rgb(0, 119, 182)",
+                    color: "white",
+                    shadow: "0 4 20 5 rgb(0, 0, 0, 80)",
                     rect {
-                        height: "50%",
-                        width: "100%",
                         main_align: "center",
                         cross_align: "center",
-                        background: "rgb(0, 119, 182)",
-                        color: "white",
-                        shadow: "0 4 20 5 rgb(0, 0, 0, 80)",
-                        rect {
-                            main_align: "center",
-                            cross_align: "center",
-                            label {
-                                font_size: "25",
-            
-                            }
-                            label {
-                                font_size: "75",
-                                font_weight: "bold",
-                                "{res.word}"
-                            }
+                        label {
+                            font_size: "25",
+
+                        }
+                        label {
+                            font_size: "75",
+                            font_weight: "bold",
+                            "{res.word}"
                         }
                     }
                 }
-            },
-            Some(Err(err)) => {
-                rsx!{
-                    label {
-                        "{err}"
+                rect {
+                    height: "50%",
+                    width: "100%",
+                    main_align: "center",
+                    cross_align: "center",
+                    background: "rgb(0, 119, 182)",
+                    color: "white",
+                    shadow: "0 4 20 5 rgb(0, 0, 0, 80)",
+                    Button {
+                        "Again"
                     }
                 }
-            },
-            None => {
-                rsx!{
-                    label {
-                        "Loading..."
-                    }
+
+            }
+        }
+        Some(Err(err)) => {
+            rsx! {
+                label {
+                    "{err}"
                 }
             }
         }
-        
-    ))
+        None => {
+            rsx! {
+                label {
+                    "Loading..."
+                }
+            }
+        }
+    }))
 }

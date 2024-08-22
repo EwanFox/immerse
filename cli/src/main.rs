@@ -8,6 +8,7 @@ mod ankiconnect;
 mod config;
 mod db;
 mod kanji;
+mod card_manager;
 #[cfg(test)]
 mod test;
 mod tui;
@@ -19,6 +20,7 @@ Imports
 use ankiconnect::get_card_content;
 use ankiconnect::get_cards;
 use ankiconnect::get_decks;
+use card_manager::CardManager;
 use clap::Subcommand;
 use config::add_deck;
 use config::read_config;
@@ -165,13 +167,16 @@ async fn main() {
             }
             Err(ref err) => eprintln!("{}", err),
         },
-        Commands::ListNewCards => match cards_with_status(fsrs::State::New) {
-            Ok(res) => {
-                for card in res.iter() {
-                    println!("{}", card.kanji)
-                }
+        Commands::ListNewCards =>  {
+            let manager = CardManager::new().unwrap();
+            match manager.new_cards(20) {
+                Ok(cards) => {
+                    for card in cards {
+                        println!("New: {}", card.kanji);
+                    }
+                },
+                Err(ref err) => eprintln!("{}", err),
             }
-            Err(ref err) => eprintln!("{}", err),
         },
         Commands::Review => {
             start_ui();
@@ -239,9 +244,7 @@ async fn anki_sync() -> Result<(), CliError> {
     //Amount of cards in deck for later processed count
     let len = info.result.len();
 
-    //Make  sure the SRS table exists before we write to it
-    ensure_card_db()?;
-
+    let mut manager = CardManager::new()?;
     // Add the kanji to both the srs and kanji tables
     for card in info.result {
         let word = card.fields.get(&field);
@@ -256,7 +259,7 @@ async fn anki_sync() -> Result<(), CliError> {
                         Err(ref err) => println!("{}", err),
                     }
                     let srscard = Card::new();
-                    crate::db::card_to_db(KanjiSrs {
+                    manager.create_card(KanjiSrs {
                         kanji,
                         card: srscard,
                     })?;

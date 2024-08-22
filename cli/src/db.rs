@@ -156,7 +156,10 @@ pub fn ensure_card_db() -> Result<(), CliError> {
             kanji TEXT NOT NULL PRIMARY KEY,
             card BLOB,
             due INTEGER,
-            status INTEGER
+            type INTEGER,
+            due INTEGER,
+            ivl INTEGER,
+            reps INTEGER
         )",
         [],
     )?;
@@ -195,7 +198,7 @@ pub fn kanji_count() -> Result<usize, CliError> {
     Ok(kanji.len())
 }
 
-fn connect() -> Result<Connection, CliError> {
+pub fn connect() -> Result<Connection, CliError> {
     if let Some(proj_dirs) = ProjectDirs::from("com", "Immerse", "Immerse") {
         if !proj_dirs.data_dir().exists() {
             fs::create_dir_all(proj_dirs.data_dir())?;
