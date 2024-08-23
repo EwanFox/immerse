@@ -4,12 +4,16 @@
 )]
 use crate::config::read_config;
 use crate::CliError;
+use crate::card_manager::CardManager;
 use crate::{
     ankiconnect::card_with_kanji,
     db::{new_cards, KanjiSrs},
 };
+use chrono::Utc;
 use freya::components::Button;
 use freya::prelude::*;
+use fsrs::models::Parameters;
+use fsrs::Rating;
 use reqwest::Url;
 use std::sync::Arc;
 
@@ -74,13 +78,38 @@ struct Question {
     word: String,
 }
 
+struct CardCollection {
+    cards: Vec<KanjiSrs>,
+    fsrs: fsrs::FSRS,
+}
+
+impl CardCollection {
+    fn new(cards: Vec<KanjiSrs>) -> Self {
+        CardCollection {
+            cards,
+            fsrs: fsrs::FSRS::new(Parameters::default())
+        }
+    }
+
+    pub fn with_index(&self, index: usize) -> &KanjiSrs {
+        return &self.cards[index]
+    }
+
+    pub fn review(&mut self, index: usize, rating: Rating) {
+        let scheduled = self.fsrs.schedule(self.cards[index].card.clone(), Utc::now());
+        self.cards[index].card = scheduled.select_card(rating);
+        dbg!(&self.cards[index].card);
+    }
+}
+
 fn app() -> Result<Element, CliError> {
-    let mut current: Signal<Option<KanjiSrs>> = use_signal(|| None);
-    let n = new_cards();
+    let mut current: Signal<Option<usize>> = use_signal(|| Some(0));
+    let manager = CardManager::new()?;
+    let n = manager.new_cards(20);
     if n.is_err() {
         println!("{}", n.as_ref().unwrap_err());
     }
-    let mut new: Signal<Vec<KanjiSrs>> = use_signal(|| n.unwrap_or_else(|_| vec![]));
+    let mut new: Signal<CardCollection> = use_signal(|| CardCollection::new(n.unwrap_or_else(|_| vec![])));
 
     let conf = Arc::new(read_config()?);
 
@@ -88,8 +117,8 @@ fn app() -> Result<Element, CliError> {
         let conf_clone = Arc::clone(&conf);
         return async move {
             if let Some(k) = current.read().as_ref() {
-                let e = card_with_kanji(k.kanji, &conf_clone).await;
-                match e {
+
+                match card_with_kanji(new.read().with_index(*k).kanji, &conf_clone).await {
                     Ok(result) => {
                         return Ok(Question {
                             word: result.result[0].fields.get("Word").unwrap().value.clone(),
@@ -101,10 +130,6 @@ fn app() -> Result<Element, CliError> {
                 return Err(CliError::Custom("Something is messed up".to_string()));
             }
         };
-    });
-
-    use_effect(move || {
-        current.set(new.pop());
     });
 
     Ok(rsx!(match &*q.read() {
@@ -141,7 +166,13 @@ fn app() -> Result<Element, CliError> {
                     color: "white",
                     shadow: "0 4 20 5 rgb(0, 0, 0, 80)",
                     Button {
-                        "Again"
+                        label {
+                            "Good"
+                        }
+                        onclick: move |_| {
+                            new.write().review(*current.read().as_ref().unwrap(),Rating::Good);
+                            current.write().as_mut().map(|val| *val += 1);
+                        }
                     }
                 }
 
