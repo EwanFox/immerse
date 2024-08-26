@@ -64,6 +64,7 @@ pub struct GetCardsContentResult {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CardContent {
+    pub cardId: u64,
     pub interval: u16,
     pub fields: HashMap<String, Field>,
 }

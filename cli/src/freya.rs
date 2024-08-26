@@ -3,6 +3,7 @@
     windows_subsystem = "windows"
 )]
 use crate::config::read_config;
+use crate::word_manager::WordManager;
 use crate::CliError;
 use crate::card_manager::CardManager;
 use crate::{
@@ -14,6 +15,8 @@ use freya::components::Button;
 use freya::prelude::*;
 use fsrs::models::Parameters;
 use fsrs::Rating;
+use rand::seq::SliceRandom;
+use rand::Rng;
 use reqwest::Url;
 use std::sync::Arc;
 
@@ -98,13 +101,15 @@ impl CardCollection {
     pub fn review(&mut self, index: usize, rating: Rating) {
         let scheduled = self.fsrs.schedule(self.cards[index].card.clone(), Utc::now());
         self.cards[index].card = scheduled.select_card(rating);
-        dbg!(&self.cards[index].card);
     }
 }
 
 fn app() -> Result<Element, CliError> {
     let mut current: Signal<Option<usize>> = use_signal(|| Some(0));
+    let w = WordManager::new()?;
+
     let manager = CardManager::new()?;
+    let word_manager = use_signal(|| w);
     let n = manager.new_cards(20);
     if n.is_err() {
         println!("{}", n.as_ref().unwrap_err());
@@ -114,18 +119,19 @@ fn app() -> Result<Element, CliError> {
     let conf = Arc::new(read_config()?);
 
     let q = use_resource(move || {
-        let conf_clone = Arc::clone(&conf);
+
         return async move {
             if let Some(k) = current.read().as_ref() {
 
-                match card_with_kanji(new.read().with_index(*k).kanji, &conf_clone).await {
-                    Ok(result) => {
-                        return Ok(Question {
-                            word: result.result[0].fields.get("Word").unwrap().value.clone(),
-                        })
-                    }
-                    Err(err) => return Err(err),
+                let matches = word_manager.read().find_words(new.read().cards[*k].kanji.to_string())?;
+                let choice = rand::thread_rng().gen_range(0..matches.len());
+                if matches.len() > 0 {
+                    return Ok(matches[choice].clone())
+                } else {
+                    return Err(CliError::Custom("Didn't find word for kanji!".to_string()))
                 }
+                    
+                
             } else {
                 return Err(CliError::Custom("Something is messed up".to_string()));
             }

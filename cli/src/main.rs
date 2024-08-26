@@ -13,6 +13,7 @@ mod card_manager;
 mod test;
 mod tui;
 mod freya;
+mod word_manager;
 /*
 Imports
 */
@@ -32,6 +33,7 @@ use freya::start_ui;
 use fsrs::Card;
 use kanji::is_kanji;
 use kanji::recommended_level;
+use word_manager::WordManager;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -226,28 +228,54 @@ async fn anki_sync() -> Result<(), CliError> {
     //If not, ask user to select one and then save to config.
 
     let config = read_config()?;
-    let mut field: String = String::new();
+    let mut word_field: String = String::new();
+    let mut def_field: String = String::new();
+    let mut furigana_field: String = String::new();
     if let Some(deck) = config.decks.into_iter().find(|deck| deck.name == selection) {
-        field = deck.word_field
+        word_field = deck.word_field;
+        def_field = deck.def_field;
+        furigana_field = deck.furigana_field;
     } else {
         terminal = crate::tui::init()?;
-        let nf = terminal
+        word_field = terminal
             .selection_list(
                 info.result[0].fields.keys().cloned().collect(),
                 "Choose a field to parse word from:",
             )
             .await?;
-        add_deck(selection, nf.clone())?;
-        field = nf;
+        terminal = crate::tui::init()?;
+        def_field = terminal
+            .selection_list(
+                info.result[0].fields.keys().cloned().collect(),
+                "Choose a field to parse definition from:",
+            )
+            .await?;
+        terminal = crate::tui::init()?;
+        furigana_field = terminal
+            .selection_list(
+                info.result[0].fields.keys().cloned().collect(),
+                "Choose a field to parse furigana from:",
+            )
+            .await?;
+        add_deck(selection, word_field.clone(), def_field.clone(), furigana_field.clone())?;
     }
 
     //Amount of cards in deck for later processed count
     let len = info.result.len();
 
     let mut manager = CardManager::new()?;
+    let mut word_manager = WordManager::new()?;
     // Add the kanji to both the srs and kanji tables
     for card in info.result {
-        let word = card.fields.get(&field);
+
+        let word = card.fields.get(&word_field);
+        let def = card.fields.get(&def_field);
+        let furigana = card.fields.get(&furigana_field);
+        if word.is_some() && def.is_some() && furigana.is_some() {
+            word_manager.insert_or_update_word(card.cardId, &word.unwrap().value, &def.unwrap().value, &furigana.unwrap().value)?;
+        } else {
+            return Err(CliError::Custom("Card did not contain expected field".to_string()))
+        }
         match word {
             Some(word) => {
                 for kanji in word.value.chars() {
